@@ -1,0 +1,52 @@
+# 将 PR 状态同步到 HANDOFF API（Phase 待审核/已完成）
+# 配置：在仓库 Settings → Secrets and variables → Actions 中添加 HANDOFF_API_URL（API 根地址，如 https://handoff.example.com）
+# 若未设置 HANDOFF_API_URL，本 workflow 会跳过调用，不会报错
+name: Handoff – sync PR status to API
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Parse Phase ID from PR title
+        id: parse
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          if echo "$TITLE" | grep -qE '\[(Phase\s+)?[A-Z]+-[0-9]+\]'; then
+            PHASE_ID=$(echo "$TITLE" | grep -oE '\[(Phase\s+)?[A-Z]+-[0-9]+\]' | head -1 | sed -E 's/\[(Phase[[:space:]]+)?([A-Z]+-[0-9]+)\]/\2/')
+            echo "phase_id=$PHASE_ID" >> $GITHUB_OUTPUT
+            echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update Handoff API (opened/synchronize → 待审核)
+        if: steps.parse.outputs.found == 'true' && github.event.action != 'closed'
+        env:
+          HANDOFF_API_URL: ${{ secrets.HANDOFF_API_URL }}
+        run: |
+          if [ -z "$HANDOFF_API_URL" ]; then echo "HANDOFF_API_URL not set, skip"; exit 0; fi
+          BASE="${HANDOFF_API_URL%/}"
+          PHASE_ID="${{ steps.parse.outputs.phase_id }}"
+          PR_URL="${{ github.event.pull_request.html_url }}"
+          curl -sS -X PATCH "${BASE}/handoff/phases/${PHASE_ID}/status" \
+            -H "Content-Type: application/json" \
+            -d "{\"status\": \"待审核\", \"pr_url\": \"${PR_URL}\"}" \
+            -w "\nHTTP %{http_code}\n" -o /tmp/out; cat /tmp/out
+
+      - name: Update Handoff API (closed + merged → 已完成)
+        if: steps.parse.outputs.found == 'true' && github.event.action == 'closed' && github.event.pull_request.merged == true
+        env:
+          HANDOFF_API_URL: ${{ secrets.HANDOFF_API_URL }}
+        run: |
+          if [ -z "$HANDOFF_API_URL" ]; then echo "HANDOFF_API_URL not set, skip"; exit 0; fi
+          BASE="${HANDOFF_API_URL%/}"
+          PHASE_ID="${{ steps.parse.outputs.phase_id }}"
+          PR_URL="${{ github.event.pull_request.html_url }}"
+          curl -sS -X PATCH "${BASE}/handoff/phases/${PHASE_ID}/status" \
+            -H "Content-Type: application/json" \
+            -d "{\"status\": \"已完成\", \"pr_url\": \"${PR_URL}\"}" \
+            -w "\nHTTP %{http_code}\n" -o /tmp/out; cat /tmp/out

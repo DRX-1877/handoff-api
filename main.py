@@ -1,4 +1,5 @@
 """HANDOFF API: read/write handoff state, status updates, optional GitHub webhook."""
+import base64
 import re
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -7,6 +8,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+import httpx
 
 from database import engine, get_db, Base
 from models import Meta, Phase, PhaseTask, CurrentTask, LaunchInstruction, CompletionLog
@@ -289,6 +291,61 @@ def create_completion_log(body: CompletionLogCreate, db: Session = Depends(get_d
     db.commit()
     db.refresh(log)
     return log
+
+
+# ----- Deploy workflow to target repo (via GitHub API) -----
+
+_WORKFLOW_TEMPLATE_PATH = Path(__file__).resolve().parent / "workflow-templates" / "handoff-status.yml"
+
+
+class DeployWorkflowBody(BaseModel):
+    owner: str
+    repo: str
+    github_token: str
+
+
+@app.post("/handoff/deploy-workflow")
+async def deploy_workflow_to_repo(body: DeployWorkflowBody):
+    """
+    通过 GitHub API 将 handoff-status workflow 写入指定仓库的 .github/workflows/handoff-status.yml。
+    调用方需提供有 repo 写权限的 GitHub token；目标仓库需在 Settings → Actions 中配置 HANDOFF_API_URL。
+    """
+    path = ".github/workflows/handoff-status.yml"
+    url_get = f"https://api.github.com/repos/{body.owner}/{body.repo}/contents/{path}"
+    url_put = url_get
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {body.github_token}",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    if not _WORKFLOW_TEMPLATE_PATH.is_file():
+        raise HTTPException(status_code=500, detail="workflow template file not found")
+    yaml_content = _WORKFLOW_TEMPLATE_PATH.read_text(encoding="utf-8")
+    content_b64 = base64.b64encode(yaml_content.encode("utf-8")).decode("ascii")
+    payload = {"message": "Add or update handoff-status workflow", "content": content_b64}
+
+    async with httpx.AsyncClient() as client:
+        get_r = await client.get(url_get, headers=headers)
+        if get_r.status_code == 200:
+            data = get_r.json()
+            payload["sha"] = data.get("sha")
+        elif get_r.status_code != 404:
+            raise HTTPException(
+                status_code=502,
+                detail=f"github_api_error: {get_r.status_code} {get_r.text[:200]}",
+            )
+        put_r = await client.put(url_put, headers=headers, json=payload)
+        if put_r.status_code not in (200, 201):
+            raise HTTPException(
+                status_code=502,
+                detail=f"github_api_error: {put_r.status_code} {put_r.text[:200]}",
+            )
+    return {
+        "ok": True,
+        "repo": f"{body.owner}/{body.repo}",
+        "path": path,
+        "message": "Workflow 已写入目标仓库；请在该仓库 Settings → Secrets 中配置 HANDOFF_API_URL",
+    }
 
 
 # ----- GitHub Webhook (H-4) -----
