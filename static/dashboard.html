@@ -72,17 +72,18 @@
     .md-table tr:last-child td { border-bottom: none; }
     .md-table code { background: rgba(175,184,193,.2); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; font-family: ui-monospace, monospace; }
 
-    .state-sections { display: flex; flex-direction: column; gap: 24px; }
-    .state-section { border: 1px solid var(--border); border-radius: 6px; padding: 16px; background: var(--card); }
-    .state-section-title { font-size: 1rem; font-weight: 600; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid var(--border); color: var(--text); }
+    .state-sections { display: flex; flex-direction: column; gap: 28px; }
+    .state-section { border: 1px solid var(--border); border-radius: 8px; padding: 24px; background: var(--card); }
+    .state-section-title { font-size: 1.25rem; font-weight: 600; margin: 0 0 20px 0; padding-bottom: 12px; border-bottom: 2px solid var(--border); color: var(--text); }
     .state-ios .state-section-title { border-color: #0969da; color: #0969da; }
     .state-backend .state-section-title { border-color: #1a7f37; color: #1a7f37; }
     .state-abandoned .state-section-title { border-color: var(--muted); color: var(--muted); }
-    .state-subsection { margin-bottom: 12px; }
+    .state-subsection { margin-bottom: 20px; }
     .state-subsection:last-child { margin-bottom: 0; }
-    .state-subsection-label { font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
-    .state-item-list { margin: 0; padding-left: 20px; font-size: 0.875rem; line-height: 1.6; color: var(--text); }
-    .state-item-list li { margin-bottom: 4px; }
+    .state-subsection-label { font-size: 0.875rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+    .state-item-list { margin: 0; padding: 0; list-style: none; font-size: 0.9375rem; line-height: 2; color: var(--text); }
+    .state-item-list li { padding-left: 18px; position: relative; }
+    .state-item-list li::before { content: '•'; position: absolute; left: 0; color: var(--muted); font-size: 0.75em; }
 
     #page-tasks table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
     #page-tasks th, #page-tasks td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); }
@@ -193,13 +194,13 @@
           html += '<h4 class="state-section-title">' + escapeHtml(sec.title) + '</h4>';
           (sec.subsections || []).forEach(sub => {
             if ((sub.items || []).length === 0) return;
-            if (sub.label) html += '<div class="state-subsection"><div class="state-subsection-label">' + escapeHtml(sub.label) + '</div>';
+            html += '<div class="state-subsection">';
+            if (sub.label) html += '<div class="state-subsection-label">' + escapeHtml(sub.label) + '</div>';
             html += '<ul class="state-item-list">';
             sub.items.forEach(it => {
               html += '<li>' + escapeHtml(it) + '</li>';
             });
-            html += '</ul>';
-            if (sub.label) html += '</div>';
+            html += '</ul></div>';
           });
           html += '</div>';
         });
