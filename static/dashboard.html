@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HANDOFF 看板</title>
+  <style>
+    :root { --bg: #0f0f12; --card: #1a1a1f; --text: #e4e4e7; --muted: #71717a; --border: #27272a; --待办: #3b82f6; --进行中: #eab308; --待审核: #f97316; --需修改: #ef4444; --已完成: #22c55e; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 1rem; line-height: 1.5; }
+    h1 { font-size: 1.5rem; margin: 0 0 1rem 0; }
+    h2 { font-size: 1.1rem; margin: 1rem 0 0.5rem 0; color: var(--muted); }
+    section { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; }
+    .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: 500; }
+    .badge.待办 { background: rgba(59,130,246,0.2); color: var(--待办); }
+    .badge.进行中 { background: rgba(234,179,8,0.2); color: var(--进行中); }
+    .badge.待审核 { background: rgba(249,115,22,0.2); color: var(--待审核); }
+    .badge.需修改 { background: rgba(239,68,68,0.2); color: var(--需修改); }
+    .badge.已完成 { background: rgba(34,197,94,0.2); color: var(--已完成); }
+    a { color: #60a5fa; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .phase-card { margin-bottom: 0.75rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 6px; }
+    .phase-card h3 { margin: 0 0 0.25rem 0; font-size: 1rem; }
+    .phase-meta { font-size: 0.85rem; color: var(--muted); margin-top: 0.25rem; }
+    .log-list { list-style: none; padding: 0; margin: 0; }
+    .log-list li { padding: 0.35rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    .log-list li:last-child { border-bottom: none; }
+    .loading { color: var(--muted); }
+    .error { color: var(--需修改); }
+  </style>
+</head>
+<body>
+  <h1>HANDOFF 看板</h1>
+  <div id="root" class="loading">加载中…</div>
+
+  <script>
+    const API = ''; // same origin
+    async function load() {
+      const root = document.getElementById('root');
+      try {
+        const r = await fetch(API + '/handoff');
+        if (!r.ok) throw new Error(r.statusText);
+        const data = await r.json();
+        root.innerHTML = '';
+        root.classList.remove('loading', 'error');
+
+        const section = (title, html) => {
+          const s = document.createElement('section');
+          s.innerHTML = '<h2>' + title + '</h2>' + html;
+          root.appendChild(s);
+        };
+
+        let tasksHtml = '<table><thead><tr><th>负责</th><th>任务</th><th>启动命令</th></tr></thead><tbody>';
+        (data.current_tasks || []).forEach(t => {
+          tasksHtml += '<tr><td>' + escapeHtml(t.assignee || '') + '</td><td>' + escapeHtml(t.task_desc) + '</td><td>' + escapeHtml(t.launch_cmd || '') + '</td></tr>';
+        });
+        tasksHtml += '</tbody></table>';
+        section('当前待办', tasksHtml);
+
+        let phasesHtml = '';
+        (data.phases || []).forEach(p => {
+          let meta = p.pr_url ? ' | <a href="' + escapeAttr(p.pr_url) + '" target="_blank" rel="noopener">PR</a>' : '';
+          if (p.note) meta += ' | ' + escapeHtml(p.note);
+          let tasks = (p.tasks || []).map(t => '<li>' + (t.done ? '✓' : '○') + ' ' + escapeHtml(t.content) + '</li>').join('');
+          phasesHtml += '<div class="phase-card"><h3>' + escapeHtml(p.phase_id) + '：' + escapeHtml(p.title || '') + '</h3><div class="phase-meta"><span class="badge ' + escapeAttr(p.status) + '">' + escapeHtml(p.status) + '</span>' + meta + '</div><ul class="log-list">' + tasks + '</ul></div>';
+        });
+        section('Phases', phasesHtml || '<p class="muted">暂无</p>');
+
+        let logHtml = '<ul class="log-list">';
+        (data.completion_log || []).forEach(l => {
+          logHtml += '<li><strong>' + escapeHtml(l.date) + '</strong> ' + escapeHtml(l.message) + '</li>';
+        });
+        logHtml += '</ul>';
+        section('更新日志', logHtml);
+      } catch (e) {
+        root.textContent = '加载失败：' + e.message;
+        root.classList.add('error');
+      }
+    }
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+    function escapeAttr(s) {
+      return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    load();
+  </script>
+</body>
+</html>
