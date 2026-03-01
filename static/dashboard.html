@@ -78,6 +78,7 @@
     .state-ios .state-section-title { border-color: #0969da; color: #0969da; }
     .state-backend .state-section-title { border-color: #1a7f37; color: #1a7f37; }
     .state-abandoned .state-section-title { border-color: var(--muted); color: var(--muted); }
+    .state-section-repo { font-size: 0.8em; font-weight: 500; font-family: ui-monospace, monospace; color: var(--muted); margin-left: 8px; }
     .state-subsection { margin-bottom: 20px; }
     .state-subsection:last-child { margin-bottom: 0; }
     .state-subsection-label { font-size: 0.875rem; font-weight: 600; color: var(--text); margin-bottom: 10px; }
@@ -191,7 +192,9 @@
         let html = '<div class="state-sections">';
         data.sections.forEach(sec => {
           html += '<div class="state-section state-' + escapeAttr(sec.id) + '">';
-          html += '<h4 class="state-section-title">' + escapeHtml(sec.title) + '</h4>';
+          html += '<h4 class="state-section-title">' + escapeHtml(sec.title);
+          if (sec.repo) html += ' <span class="state-section-repo">' + escapeHtml(sec.repo) + '</span>';
+          html += '</h4>';
           (sec.subsections || []).forEach(sub => {
             if ((sub.items || []).length === 0) return;
             html += '<div class="state-subsection">';

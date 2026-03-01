@@ -34,6 +34,7 @@ def seed():
             {
                 "id": "ios",
                 "title": "iOS 已完成",
+                "repo": "LearningPlanApp/",
                 "subsections": [
                     {"label": "数据模型", "items": ["Plan", "Phase", "PlanItem", "Task", "ChecklistItem"]},
                     {"label": "视图", "items": ["ContentView", "ExploreView", "OnboardingPromiseView", "HomeView", "PlanModeView", "NewPlanView", "PlanDetailView", "PomodoroView", "ReportView", "VerifyChatView"]},
@@ -45,6 +46,7 @@ def seed():
             {
                 "id": "backend",
                 "title": "后端已完成",
+                "repo": "learning-plan-api/",
                 "subsections": [
                     {"label": "框架", "items": ["FastAPI", "CORS"]},
                     {"label": "API", "items": ["GET /api/templates", "POST /api/generate", "POST /api/chat/guide", "POST /api/generate_report", "POST /api/chat/verify", "GET /health"]},
