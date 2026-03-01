@@ -5,124 +5,194 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>HANDOFF 看板</title>
   <style>
-    :root { --bg: #0f0f12; --card: #1a1a1f; --text: #e4e4e7; --muted: #71717a; --border: #27272a; --待办: #3b82f6; --进行中: #eab308; --待审核: #f97316; --需修改: #ef4444; --已完成: #22c55e; }
+    :root {
+      --bg: #0f0f12; --card: #1a1a1f; --text: #e4e4e7; --muted: #71717a; --border: #27272a;
+      --待办: #3b82f6; --进行中: #eab308; --待审核: #f97316; --需修改: #ef4444; --已完成: #22c55e;
+      --accent: #8b5cf6;
+    }
     * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 1rem; line-height: 1.5; }
-    h1 { font-size: 1.5rem; margin: 0 0 1rem 0; }
-    h2 { font-size: 1.1rem; margin: 1rem 0 0.5rem 0; color: var(--muted); }
-    section { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); font-weight: 500; }
-    .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: 500; }
-    .badge.待办 { background: rgba(59,130,246,0.2); color: var(--待办); }
-    .badge.进行中 { background: rgba(234,179,8,0.2); color: var(--进行中); }
-    .badge.待审核 { background: rgba(249,115,22,0.2); color: var(--待审核); }
-    .badge.需修改 { background: rgba(239,68,68,0.2); color: var(--需修改); }
-    .badge.已完成 { background: rgba(34,197,94,0.2); color: var(--已完成); }
-    a { color: #60a5fa; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    .phase-card { margin-bottom: 0.75rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 6px; }
-    .phase-card h3 { margin: 0 0 0.25rem 0; font-size: 1rem; }
-    .phase-meta { font-size: 0.85rem; color: var(--muted); margin-top: 0.25rem; }
-    .log-list { list-style: none; padding: 0; margin: 0; }
-    .log-list li { padding: 0.35rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-    .log-list li:last-child { border-bottom: none; }
-    .loading { color: var(--muted); }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; line-height: 1.5; }
+
+    .nav {
+      position: sticky; top: 0; z-index: 20;
+      background: var(--card); border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; gap: 2px; padding: 8px;
+      justify-content: center;
+    }
+    .nav a {
+      padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 500;
+      color: var(--muted); text-decoration: none;
+    }
+    .nav a:hover { color: var(--text); background: rgba(255,255,255,.06); }
+    .nav a.active { color: var(--accent); background: rgba(139,92,246,.15); }
+
+    .page { display: none; max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+    .page.active { display: block; }
+    .page-title { font-size: 1.35rem; font-weight: 600; margin-bottom: 8px; }
+    .page-desc { font-size: 0.9rem; color: var(--muted); margin-bottom: 24px; }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 500; }
+    .badge.待办 { background: rgba(59,130,246,.2); color: var(--待办); }
+    .badge.进行中 { background: rgba(234,179,8,.2); color: var(--进行中); }
+    .badge.待审核 { background: rgba(249,115,22,.2); color: var(--待审核); }
+    .badge.需修改 { background: rgba(239,68,68,.2); color: var(--需修改); }
+    .badge.已完成 { background: rgba(34,197,94,.2); color: var(--已完成); }
+
+    /* 概览页：统计卡片 */
+    .overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; }
+    .stat-num { font-size: 1.75rem; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+    .overview-recent { font-size: 0.9rem; color: var(--muted); }
+    .overview-recent li { margin: 6px 0; }
+
+    /* 文档页：阅读版式 */
+    #page-docs .doc-block { margin-bottom: 28px; }
+    #page-docs .doc-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 8px; }
+    #page-docs .doc-value { font-size: 0.95rem; white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
+
+    /* 待办页：表格式 */
+    #page-tasks table { width: 100%; border-collapse: collapse; }
+    #page-tasks th, #page-tasks td { text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border); }
+    #page-tasks th { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
+    #page-tasks .assignee { color: var(--accent); font-weight: 500; }
+
+    /* Phases 页：卡片列表，每 Phase 独立卡片 */
+    #page-phases .phase-card { margin-bottom: 20px; }
+    #page-phases .phase-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    #page-phases .phase-id { font-weight: 600; font-size: 1.05rem; }
+    #page-phases .phase-tasks { list-style: none; padding: 0; margin: 0; }
+    #page-phases .phase-tasks li { padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+    #page-phases .phase-tasks li:last-child { border-bottom: none; }
+    #page-phases .phase-tasks .done { color: var(--muted); }
+    #page-phases .phase-tasks .tick { color: var(--已完成); }
+
+    /* 更新日志页：时间线 */
+    #page-log .timeline { position: relative; padding-left: 20px; border-left: 2px solid var(--border); margin-left: 8px; }
+    #page-log .timeline-item { position: relative; padding-bottom: 20px; }
+    #page-log .timeline-item::before { content: ''; position: absolute; left: -26px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+    #page-log .timeline-date { font-weight: 600; color: var(--accent); font-size: 0.9rem; margin-bottom: 4px; }
+    #page-log .timeline-msg { font-size: 0.95rem; color: var(--text); }
+
+    /* 启动指令页：代码块式 */
+    #page-launch .launch-block { margin-bottom: 24px; }
+    #page-launch .launch-title { font-size: 1rem; font-weight: 600; margin-bottom: 8px; color: var(--accent); }
+    #page-launch .launch-body { background: #0d0d0f; border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: ui-monospace, monospace; font-size: 0.85rem; white-space: pre-wrap; word-break: break-word; overflow-x: auto; }
+
+    .loading, .error { text-align: center; padding: 48px 16px; color: var(--muted); }
     .error { color: var(--需修改); }
-    .meta-block { margin-bottom: 1rem; }
-    .meta-block:last-child { margin-bottom: 0; }
-    .meta-label { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.25rem; }
-    .meta-value { font-size: 0.9rem; white-space: pre-wrap; word-break: break-word; }
-    .meta-value table { margin-top: 0.25rem; }
+    a { color: #818cf8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
-  <h1>HANDOFF 看板</h1>
+  <nav class="nav">
+    <a href="#overview" data-page="overview">概览</a>
+    <a href="#docs" data-page="docs">文档</a>
+    <a href="#tasks" data-page="tasks">待办</a>
+    <a href="#phases" data-page="phases">Phases</a>
+    <a href="#log" data-page="log">更新日志</a>
+    <a href="#launch" data-page="launch">启动指令</a>
+  </nav>
   <div id="root" class="loading">加载中…</div>
 
   <script>
-    const API = ''; // same origin
-    async function load() {
+    const API = '';
+    function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function escapeAttr(s) { return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+    function render(data) {
+      const metaLabels = { vision_quote: '产品愿景（引用）', vision_summary: '愿景摘要', design_refs: '设计参考', agent_roles: 'Agent 分工', completion_workflow: '完工流程', current_state: '当前状态', iteration_priority: '迭代优先级', launch_cmd_help: '启动命令说明' };
+      const metaOrder = ['vision_quote', 'vision_summary', 'design_refs', 'agent_roles', 'completion_workflow', 'current_state', 'iteration_priority', 'launch_cmd_help'];
+      const meta = data.meta || {};
+      const tasks = data.current_tasks || [];
+      const phaseOrder = (a, b) => { const o = ['F', 'D-1', 'D-2', 'E-1', 'E-2']; return (o.indexOf(a.phase_id) + 1) - (o.indexOf(b.phase_id) + 1) || 0; };
+      const phases = (data.phases || []).slice().sort(phaseOrder);
+      const log = data.completion_log || [];
+      const launch = data.launch_instructions || [];
+
       const root = document.getElementById('root');
-      try {
-        const r = await fetch(API + '/handoff');
-        if (!r.ok) throw new Error(r.statusText);
-        const data = await r.json();
-        root.innerHTML = '';
-        root.classList.remove('loading', 'error');
+      root.innerHTML = '';
 
-        const section = (title, html) => {
-          const s = document.createElement('section');
-          s.innerHTML = '<h2>' + title + '</h2>' + html;
-          root.appendChild(s);
-        };
+      const overview = document.createElement('div');
+      overview.id = 'page-overview'; overview.className = 'page active';
+      const taskCount = tasks.length;
+      const doneCount = phases.reduce((n, p) => n + (p.status === '已完成' ? 1 : 0), 0);
+      overview.innerHTML = '<div class="page-title">概览</div><div class="page-desc">HANDOFF 状态一览</div>' +
+        '<div class="overview-grid">' +
+        '<div class="stat-card"><div class="stat-num">' + taskCount + '</div><div class="stat-label">当前待办</div></div>' +
+        '<div class="stat-card"><div class="stat-num">' + phases.length + '</div><div class="stat-label">Phases</div></div>' +
+        '<div class="stat-card"><div class="stat-num">' + doneCount + '</div><div class="stat-label">已完成</div></div>' +
+        '<div class="stat-card"><div class="stat-num">' + log.length + '</div><div class="stat-label">更新日志</div></div>' +
+        '</div>' +
+        '<div class="card"><div class="page-title" style="margin-bottom:12px">最近更新</div><ul class="overview-recent">' +
+        log.slice(0, 5).map(l => '<li><strong>' + escapeHtml(l.date) + '</strong> ' + escapeHtml(l.message.slice(0, 80)) + (l.message.length > 80 ? '…' : '') + '</li>').join('') +
+        '</ul></div>';
+      root.appendChild(overview);
 
-        const metaLabels = {
-          vision_quote: '产品愿景（引用）',
-          vision_summary: '愿景摘要',
-          design_refs: '设计参考',
-          agent_roles: 'Agent 分工',
-          completion_workflow: '完工流程',
-          current_state: '当前状态',
-          iteration_priority: '迭代优先级',
-          launch_cmd_help: '启动命令说明'
-        };
-        const metaOrder = ['vision_quote', 'vision_summary', 'design_refs', 'agent_roles', 'completion_workflow', 'current_state', 'iteration_priority', 'launch_cmd_help'];
-        const meta = data.meta || {};
-        let metaHtml = '';
-        metaOrder.forEach(key => {
-          if (!meta[key]) return;
-          const label = metaLabels[key] || key;
-          const raw = meta[key];
-          const hasTable = /^\s*\|.+\|/m.test(raw);
-          const valueHtml = hasTable ? '<pre class="meta-value">' + escapeHtml(raw) + '</pre>' : '<div class="meta-value">' + escapeHtml(raw) + '</div>';
-          metaHtml += '<div class="meta-block"><div class="meta-label">' + escapeHtml(label) + '</div>' + valueHtml + '</div>';
-        });
-        if (metaHtml) section('文档摘要', metaHtml);
+      const docs = document.createElement('div');
+      docs.id = 'page-docs'; docs.className = 'page';
+      let docsHtml = '<div class="page-title">文档</div><div class="page-desc">愿景、分工、流程与状态说明</div>';
+      metaOrder.forEach(key => {
+        if (!meta[key]) return;
+        const raw = meta[key];
+        docsHtml += '<div class="card doc-block"><div class="doc-label">' + escapeHtml(metaLabels[key] || key) + '</div><div class="doc-value">' + escapeHtml(raw) + '</div></div>';
+      });
+      docs.innerHTML = docsHtml;
+      root.appendChild(docs);
 
-        let tasksHtml = '<table><thead><tr><th>负责</th><th>任务</th><th>启动命令</th></tr></thead><tbody>';
-        (data.current_tasks || []).forEach(t => {
-          tasksHtml += '<tr><td>' + escapeHtml(t.assignee || '') + '</td><td>' + escapeHtml(t.task_desc) + '</td><td>' + escapeHtml(t.launch_cmd || '') + '</td></tr>';
-        });
-        tasksHtml += '</tbody></table>';
-        section('当前待办', tasksHtml);
+      const tasksPage = document.createElement('div');
+      tasksPage.id = 'page-tasks'; tasksPage.className = 'page';
+      let tableHtml = '<div class="page-title">当前待办</div><div class="page-desc">负责、任务与启动命令</div><div class="card"><table><thead><tr><th>负责</th><th>任务</th><th>启动命令</th></tr></thead><tbody>';
+      tasks.forEach(t => { tableHtml += '<tr><td class="assignee">' + escapeHtml(t.assignee || '—') + '</td><td>' + escapeHtml(t.task_desc) + '</td><td style="color:var(--muted);font-size:0.85rem">' + escapeHtml(t.launch_cmd || '') + '</td></tr>'; });
+      tasksPage.innerHTML = tableHtml + '</tbody></table></div>';
+      root.appendChild(tasksPage);
 
-        const phaseOrder = (a, b) => {
-          const order = ['F', 'D-1', 'D-2', 'E-1', 'E-2'];
-          const i = order.indexOf(a.phase_id), j = order.indexOf(b.phase_id);
-          return (i === -1 ? 99 : i) - (j === -1 ? 99 : j);
-        };
-        const sortedPhases = (data.phases || []).slice().sort(phaseOrder);
-        let phasesHtml = '';
-        sortedPhases.forEach(p => {
-          let meta = p.pr_url ? ' | <a href="' + escapeAttr(p.pr_url) + '" target="_blank" rel="noopener">PR</a>' : '';
-          if (p.note) meta += ' | ' + escapeHtml(p.note);
-          let tasks = (p.tasks || []).map(t => '<li>' + (t.done ? '✓' : '○') + ' ' + escapeHtml(t.content) + '</li>').join('');
-          phasesHtml += '<div class="phase-card"><h3>' + escapeHtml(p.phase_id) + '：' + escapeHtml(p.title || '') + '</h3><div class="phase-meta"><span class="badge ' + escapeAttr(p.status) + '">' + escapeHtml(p.status) + '</span>' + meta + '</div><ul class="log-list">' + tasks + '</ul></div>';
-        });
-        section('Phases', phasesHtml || '<p class="muted">暂无</p>');
+      const phasesPage = document.createElement('div');
+      phasesPage.id = 'page-phases'; phasesPage.className = 'page';
+      let phasesHtml = '<div class="page-title">Phases</div><div class="page-desc">迭代阶段与子项</div>';
+      phases.forEach(p => {
+        const tasksList = (p.tasks || []).map(t => '<li class="' + (t.done ? 'done' : '') + '"><span class="' + (t.done ? 'tick">✓' : '') + '"></span> ' + escapeHtml(t.content) + '</li>').join('');
+        const pr = p.pr_url ? ' <a href="' + escapeAttr(p.pr_url) + '" target="_blank" rel="noopener">PR</a>' : '';
+        phasesHtml += '<div class="card phase-card"><div class="phase-head"><span class="phase-id">' + escapeHtml(p.phase_id) + ' · ' + escapeHtml(p.title || '') + '</span><span class="badge ' + escapeAttr(p.status) + '">' + escapeHtml(p.status) + '</span></div>' + (p.assignee ? '<div style="font-size:0.85rem;color:var(--muted);margin-bottom:12px">' + escapeHtml(p.assignee) + pr + '</div>' : '') + '<ul class="phase-tasks">' + (tasksList || '<li style="color:var(--muted)">无子项</li>') + '</ul></div>';
+      });
+      phasesPage.innerHTML = phasesHtml;
+      root.appendChild(phasesPage);
 
-        let logHtml = '<ul class="log-list">';
-        (data.completion_log || []).forEach(l => {
-          logHtml += '<li><strong>' + escapeHtml(l.date) + '</strong> ' + escapeHtml(l.message) + '</li>';
-        });
-        logHtml += '</ul>';
-        section('更新日志', logHtml);
-      } catch (e) {
-        root.textContent = '加载失败：' + e.message;
-        root.classList.add('error');
-      }
+      const logPage = document.createElement('div');
+      logPage.id = 'page-log'; logPage.className = 'page';
+      logPage.innerHTML = '<div class="page-title">更新日志</div><div class="page-desc">按时间倒序</div><div class="card"><div class="timeline">' +
+        log.map(l => '<div class="timeline-item"><div class="timeline-date">' + escapeHtml(l.date) + '</div><div class="timeline-msg">' + escapeHtml(l.message) + '</div></div>').join('') +
+        '</div></div>';
+      root.appendChild(logPage);
+
+      const launchPage = document.createElement('div');
+      launchPage.id = 'page-launch'; launchPage.className = 'page';
+      launchPage.innerHTML = '<div class="page-title">启动指令</div><div class="page-desc">复制到 Composer 或 run_agent 使用</div>' +
+        launch.map(li => '<div class="card launch-block"><div class="launch-title">' + escapeHtml(li.agent_type) + '</div><pre class="launch-body">' + escapeHtml(li.body) + '</pre></div>').join('');
+      root.appendChild(launchPage);
+
+      const hash = (location.hash || '#overview').slice(1) || 'overview';
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav a').forEach(a => { a.classList.toggle('active', a.getAttribute('data-page') === hash); });
+      const pageEl = document.getElementById('page-' + hash);
+      if (pageEl) pageEl.classList.add('active');
     }
-    function escapeHtml(s) {
-      const div = document.createElement('div');
-      div.textContent = s;
-      return div.innerHTML;
+
+    function onHashChange() {
+      const hash = (location.hash || '#overview').slice(1) || 'overview';
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav a').forEach(a => { a.classList.toggle('active', a.getAttribute('data-page') === hash); });
+      const pageEl = document.getElementById('page-' + hash);
+      if (pageEl) pageEl.classList.add('active');
     }
-    function escapeAttr(s) {
-      return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-    load();
+    window.addEventListener('hashchange', onHashChange);
+
+    fetch(API + '/handoff')
+      .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+      .then(data => { document.getElementById('root').classList.remove('loading'); render(data); onHashChange(); })
+      .catch(e => { document.getElementById('root').innerHTML = '<div class="error">加载失败：' + escapeHtml(e.message) + '</div>'; document.getElementById('root').classList.remove('loading'); });
   </script>
 </body>
 </html>
