@@ -4,124 +4,145 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>HANDOFF 看板</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f0f12; --card: #1a1a1f; --text: #e4e4e7; --muted: #71717a; --border: #27272a;
-      --待办: #3b82f6; --进行中: #eab308; --待审核: #f97316; --需修改: #ef4444; --已完成: #22c55e;
-      --accent: #8b5cf6; --product-accent: #06b6d4; --agent-accent: #f59e0b;
+      --bg: #fafafa; --card: #ffffff; --text: #262626; --muted: #8e8e8e; --border: #dbdbdb;
+      --待办: #0095f6; --进行中: #ffa500; --待审核: #ff7a00; --需修改: #ed4956; --已完成: #00c853;
+      --accent: #e1306c; --product-accent: #405de6; --agent-accent: #5856d6;
+      --shadow: 0 1px 3px rgba(0,0,0,.08); --shadow-lg: 0 4px 12px rgba(0,0,0,.06);
     }
     * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; line-height: 1.5; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; line-height: 1.5; }
 
     .nav {
       position: sticky; top: 0; z-index: 20;
       background: var(--card); border-bottom: 1px solid var(--border);
-      display: flex; flex-wrap: wrap; gap: 2px; padding: 8px;
-      justify-content: center;
+      display: flex; flex-wrap: wrap; gap: 4px; padding: 12px 16px;
+      justify-content: center; box-shadow: var(--shadow);
     }
     .nav a {
-      padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 500;
-      color: var(--muted); text-decoration: none;
+      padding: 10px 18px; border-radius: 20px; font-size: 0.9rem; font-weight: 500;
+      color: var(--muted); text-decoration: none; transition: all 0.2s;
     }
-    .nav a:hover { color: var(--text); background: rgba(255,255,255,.06); }
-    .nav a.active { color: var(--accent); background: rgba(139,92,246,.15); }
+    .nav a:hover { color: var(--text); background: #f0f0f0; }
+    .nav a.active { color: var(--accent); background: rgba(225,48,108,.08); }
 
-    .page { display: none; max-width: 760px; margin: 0 auto; padding: 28px 20px 56px; }
+    .page { display: none; max-width: 720px; margin: 0 auto; padding: 32px 24px 64px; }
     .page.active { display: block; }
-    .page-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 10px; }
-    .page-desc { font-size: 0.95rem; color: var(--muted); margin-bottom: 28px; }
+    .page-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
+    .page-desc { font-size: 0.95rem; color: var(--muted); margin-bottom: 32px; }
 
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
-    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 500; }
-    .badge.待办 { background: rgba(59,130,246,.2); color: var(--待办); }
-    .badge.进行中 { background: rgba(234,179,8,.2); color: var(--进行中); }
-    .badge.待审核 { background: rgba(249,115,22,.2); color: var(--待审核); }
-    .badge.需修改 { background: rgba(239,68,68,.2); color: var(--需修改); }
-    .badge.已完成 { background: rgba(34,197,94,.2); color: var(--已完成); }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
+    .badge { display: inline-block; padding: 5px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
+    .badge.待办 { background: rgba(0,149,246,.12); color: var(--待办); }
+    .badge.进行中 { background: rgba(255,165,0,.15); color: #e65100; }
+    .badge.待审核 { background: rgba(255,122,0,.15); color: var(--待审核); }
+    .badge.需修改 { background: rgba(237,73,86,.12); color: var(--需修改); }
+    .badge.已完成 { background: rgba(0,200,83,.12); color: var(--已完成); }
 
-    /* 概览页：统计卡片 */
-    .overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-bottom: 28px; }
-    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }
-    .stat-num { font-size: 2rem; font-weight: 700; color: var(--accent); }
-    .stat-label { font-size: 0.85rem; color: var(--muted); margin-top: 6px; }
+    /* 概览：统计卡片 - Instagram 风格 */
+    .overview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+    .stat-card { background: linear-gradient(135deg, #fff 0%, #f8f8f8 100%); border: 1px solid var(--border); border-radius: 16px; padding: 24px; text-align: center; box-shadow: var(--shadow); }
+    .stat-num { font-size: 2.25rem; font-weight: 700; color: var(--accent); letter-spacing: -0.03em; }
+    .stat-label { font-size: 0.85rem; color: var(--muted); margin-top: 8px; font-weight: 500; }
     .overview-recent { font-size: 0.95rem; color: var(--muted); }
-    .overview-recent li { margin: 8px 0; }
+    .overview-recent li { margin: 10px 0; }
 
-    /* Phase 进度条 */
+    /* Phase 进度条 - 圆角胶囊风格 */
     .phase-progress-list { margin-bottom: 28px; }
-    .phase-progress-item { display: flex; flex-direction: column; margin-bottom: 16px; }
+    .phase-progress-item { margin-bottom: 20px; padding: 16px 20px; background: var(--card); border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); }
     .phase-progress-item:last-child { margin-bottom: 0; }
-    .phase-progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .phase-progress-label { font-size: 0.9rem; font-weight: 500; }
-    .phase-progress-bar { height: 8px; background: rgba(255,255,255,.05); border-radius: 4px; overflow: hidden; }
-    .phase-progress-fill { height: 100%; transition: width 0.3s ease; }
+    .phase-progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .phase-progress-label { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+    .phase-progress-bar { height: 10px; background: #efefef; border-radius: 10px; overflow: hidden; }
+    .phase-progress-fill { height: 100%; border-radius: 10px; transition: width 0.4s cubic-bezier(0.4,0,0.2,1); }
 
     /* 当前待办精简列表 */
     .current-tasks-compact { list-style: none; padding: 0; margin: 0; }
-    .current-tasks-compact li { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px; }
+    .current-tasks-compact li { padding: 14px 0; border-bottom: 1px solid var(--border); display: flex; gap: 16px; }
     .current-tasks-compact li:last-child { border-bottom: none; }
-    .current-tasks-compact .task-assignee { font-weight: 600; color: var(--accent); min-width: 80px; }
-    .current-tasks-compact .task-desc { flex: 1; color: var(--text); }
+    .current-tasks-compact .task-assignee { font-weight: 600; color: var(--accent); min-width: 90px; font-size: 0.9rem; }
+    .current-tasks-compact .task-desc { flex: 1; color: var(--text); font-size: 0.95rem; }
 
-    /* 产品/Agent 页：阅读版式 */
-    .doc-block { margin-bottom: 32px; }
-    .doc-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    /* 产品/Agent 页 */
+    .doc-block { margin-bottom: 28px; }
+    .doc-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 12px; font-weight: 600; }
     .doc-value { font-size: 0.95rem; white-space: pre-wrap; word-break: break-word; line-height: 1.7; }
     #page-product .doc-label { color: var(--product-accent); }
     #page-agent .doc-label { color: var(--agent-accent); }
 
-    /* 待办页：表格式 */
+    /* Markdown 表格 */
+    .md-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; border-radius: 12px; overflow: hidden; }
+    .md-table th, .md-table td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+    .md-table th { background: #f8f8f8; font-weight: 600; color: var(--text); }
+    .md-table tr:last-child td { border-bottom: none; }
+    .md-table tr:hover td { background: #fafafa; }
+    .md-table code { background: #f0f0f0; padding: 2px 6px; border-radius: 6px; font-size: 0.85em; }
+
+    /* 当前状态 - 分块卡片 */
+    .state-section { margin-bottom: 20px; }
+    .state-section:last-child { margin-bottom: 0; }
+    .state-section-title { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); display: inline-block; }
+    .state-section.iOS .state-section-title { border-color: #007aff; }
+    .state-section.后端 .state-section-title { border-color: #00c853; }
+    .state-section.放弃 .state-section-title { border-color: var(--muted); }
+    .state-items { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .state-item { background: #f5f5f5; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; color: var(--text); }
+    .state-paragraph { font-size: 0.9rem; line-height: 1.7; color: var(--text); margin: 0; }
+
+    /* 待办页 */
     #page-tasks table { width: 100%; border-collapse: collapse; }
-    #page-tasks th, #page-tasks td { text-align: left; padding: 14px 10px; border-bottom: 1px solid var(--border); }
-    #page-tasks th { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+    #page-tasks th, #page-tasks td { text-align: left; padding: 16px; border-bottom: 1px solid var(--border); }
+    #page-tasks th { font-size: 0.85rem; color: var(--muted); font-weight: 600; background: #f8f8f8; }
     #page-tasks .assignee { color: var(--accent); font-weight: 600; }
 
-    /* Phases 页：卡片列表，每 Phase 独立卡片 */
+    /* Phases 页 - 卡片 + 进度 */
     #page-phases .phase-card { margin-bottom: 24px; }
-    #page-phases .phase-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
-    #page-phases .phase-id { font-weight: 600; font-size: 1.1rem; }
+    #page-phases .phase-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+    #page-phases .phase-id { font-weight: 600; font-size: 1.15rem; }
     #page-phases .phase-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 0.9rem; color: var(--muted); margin-bottom: 14px; }
-    #page-phases .phase-assignee { font-weight: 500; }
-    #page-phases .phase-pr-btn { display: inline-block; padding: 4px 12px; background: rgba(129,140,248,.15); color: #818cf8; border-radius: 6px; font-size: 0.85rem; font-weight: 500; text-decoration: none; }
-    #page-phases .phase-pr-btn:hover { background: rgba(129,140,248,.25); }
-    #page-phases .phase-progress { margin-bottom: 14px; }
-    #page-phases .phase-progress-text { font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
-    #page-phases .phase-progress-bar { height: 6px; background: rgba(255,255,255,.05); border-radius: 3px; overflow: hidden; }
-    #page-phases .phase-progress-fill { height: 100%; background: var(--已完成); transition: width 0.3s ease; }
+    #page-phases .phase-assignee { font-weight: 500; color: var(--agent-accent); }
+    #page-phases .phase-pr-btn { display: inline-block; padding: 6px 14px; background: linear-gradient(135deg,#0095f6,#405de6); color: #fff !important; border-radius: 20px; font-size: 0.85rem; font-weight: 500; text-decoration: none; }
+    #page-phases .phase-pr-btn:hover { opacity: 0.9; }
+    #page-phases .phase-progress { margin-bottom: 16px; }
+    #page-phases .phase-progress-text { font-size: 0.85rem; color: var(--muted); margin-bottom: 8px; }
+    #page-phases .phase-progress-bar { height: 8px; background: #efefef; border-radius: 8px; overflow: hidden; }
+    #page-phases .phase-progress-fill { height: 100%; border-radius: 8px; transition: width 0.3s ease; }
     #page-phases .phase-tasks { list-style: none; padding: 0; margin: 0; }
-    #page-phases .phase-tasks li { padding: 10px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; font-size: 0.95rem; }
+    #page-phases .phase-tasks li { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; font-size: 0.95rem; }
     #page-phases .phase-tasks li:last-child { border-bottom: none; }
-    #page-phases .phase-tasks .done { color: var(--muted); }
-    #page-phases .phase-tasks .tick { color: var(--已完成); }
+    #page-phases .phase-tasks .done { color: var(--muted); text-decoration: line-through; }
+    #page-phases .phase-tasks .tick { color: var(--已完成); font-weight: 700; }
 
-    /* 更新日志页：时间线 */
+    /* 更新日志 */
     #page-log .timeline { position: relative; padding-left: 24px; border-left: 2px solid var(--border); margin-left: 10px; }
     #page-log .timeline-item { position: relative; padding-bottom: 24px; }
     #page-log .timeline-item::before { content: ''; position: absolute; left: -28px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }
     #page-log .timeline-date { font-weight: 600; color: var(--accent); font-size: 0.95rem; margin-bottom: 6px; }
     #page-log .timeline-msg { font-size: 0.95rem; color: var(--text); line-height: 1.6; }
 
-    /* 启动指令页：代码块式 */
+    /* 启动指令 */
     #page-launch .launch-block { margin-bottom: 28px; }
     #page-launch .launch-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 10px; color: var(--accent); }
-    #page-launch .launch-body { background: #0d0d0f; border: 1px solid var(--border); border-radius: 8px; padding: 18px; font-family: ui-monospace, monospace; font-size: 0.85rem; white-space: pre-wrap; word-break: break-word; overflow-x: auto; line-height: 1.6; }
+    #page-launch .launch-body { background: #f8f8f8; border: 1px solid var(--border); border-radius: 12px; padding: 20px; font-family: 'SF Mono', ui-monospace, monospace; font-size: 0.85rem; white-space: pre-wrap; word-break: break-word; overflow-x: auto; line-height: 1.6; }
 
     .loading, .error { text-align: center; padding: 48px 16px; color: var(--muted); }
     .error { color: var(--需修改); }
-    a { color: #818cf8; text-decoration: none; }
+    a { color: #0095f6; text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    /* 响应式 */
     @media (max-width: 640px) {
-      .overview-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-      .page { padding: 20px 14px 40px; }
-      .card { padding: 18px; }
-      .phase-progress-item { flex-direction: column; align-items: flex-start; gap: 8px; }
-      .phase-progress-bar { width: 100%; }
+      .overview-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .page { padding: 24px 16px 48px; }
+      .card { padding: 20px; }
+      .phase-progress-item { padding: 14px; }
       #page-tasks .tasks-table-wrap { overflow-x: auto; }
       #page-tasks table { font-size: 0.85rem; }
       #page-tasks thead { display: none; }
-      #page-tasks tbody tr { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; padding: 12px; gap: 6px; }
+      #page-tasks tbody tr { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; padding: 14px; gap: 6px; }
       #page-tasks tbody tr:last-child { margin-bottom: 0; }
       #page-tasks td { padding: 4px 0; border: none; display: flex; flex-direction: column; gap: 2px; }
       #page-tasks td::before { content: attr(data-label); font-size: 0.75rem; color: var(--muted); font-weight: 600; }
@@ -145,6 +166,75 @@
     const API = '';
     function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
     function escapeAttr(s) { return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+    function parseMarkdownTable(text) {
+      const lines = text.trim().split('\n').filter(l => l.trim());
+      if (lines.length < 2) return null;
+      const header = lines[0];
+      const sep = lines[1];
+      if (!/^\|.+\|$/.test(header) || !/^[\s\-|:]+$/.test(sep)) return null;
+      const formatCell = (c) => c.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>');
+      const cells = (row) => row.split('|').slice(1, -1).map(c => formatCell(c.trim()));
+      const headers = cells(header);
+      let html = '<table class="md-table"><thead><tr>';
+      headers.forEach(h => { html += '<th>' + h + '</th>'; });
+      html += '</tr></thead><tbody>';
+      for (let i = 2; i < lines.length; i++) {
+        const vals = cells(lines[i]);
+        if (vals.some(v => v)) {
+          html += '<tr>';
+          vals.forEach(v => { html += '<td>' + v + '</td>'; });
+          html += '</tr>';
+        }
+      }
+      html += '</tbody></table>';
+      return html;
+    }
+
+    function renderCurrentState(text) {
+      const sections = [];
+      const markers = [
+        { key: 'iOS 已完成', type: 'iOS' },
+        { key: '后端已完成', type: '后端' },
+        { key: '已决定放弃', type: '放弃' }
+      ];
+      for (let i = 0; i < markers.length; i++) {
+        let idx = text.indexOf(markers[i].key + '：');
+        if (idx < 0) idx = text.indexOf(markers[i].key + ':');
+        if (idx < 0) continue;
+        const start = idx + markers[i].key.length + 1;
+        let end = text.length;
+        if (i < markers.length - 1) {
+          let nextIdx = text.indexOf(markers[i + 1].key + '：', start);
+          if (nextIdx < 0) nextIdx = text.indexOf(markers[i + 1].key + ':', start);
+          if (nextIdx >= 0) end = nextIdx;
+        }
+        const content = (end > 0 ? text.slice(start, end) : text.slice(start)).trim();
+        const items = content.split(/[；;]\s*/).map(s => s.trim()).filter(Boolean);
+        sections.push({ title: markers[i].key, type: markers[i].type, items });
+      }
+      if (sections.length === 0) return '<div class="doc-value">' + escapeHtml(text) + '</div>';
+      let html = '';
+      sections.forEach(s => {
+        html += '<div class="state-section ' + s.type + '"><div class="state-section-title">' + escapeHtml(s.title) + '</div>';
+        if (s.items.length > 0) {
+          html += '<div class="state-items">';
+          s.items.forEach(it => { html += '<span class="state-item">' + escapeHtml(it) + '</span>'; });
+          html += '</div>';
+        }
+        html += '</div>';
+      });
+      return html;
+    }
+
+    function renderDocValue(key, text) {
+      if (key === 'agent_roles' || key === 'iteration_priority') {
+        const table = parseMarkdownTable(text);
+        if (table) return table;
+      }
+      if (key === 'current_state') return renderCurrentState(text);
+      return '<div class="doc-value">' + escapeHtml(text) + '</div>';
+    }
 
     function render(data) {
       const metaLabels = { vision_quote: '产品愿景（引用）', vision_summary: '愿景摘要', design_refs: '设计参考', agent_roles: 'Agent 分工', completion_workflow: '完工流程', current_state: '当前状态', iteration_priority: '迭代优先级', launch_cmd_help: '启动命令说明' };
@@ -215,7 +305,7 @@
       let productHtml = '<div class="page-title">产品</div><div class="page-desc">产品愿景与迭代规划</div>';
       productKeys.forEach(key => {
         if (!meta[key]) return;
-        productHtml += '<div class="card doc-block"><div class="doc-label">' + escapeHtml(metaLabels[key] || key) + '</div><div class="doc-value">' + escapeHtml(meta[key]) + '</div></div>';
+        productHtml += '<div class="card doc-block"><div class="doc-label">' + escapeHtml(metaLabels[key] || key) + '</div>' + renderDocValue(key, meta[key]) + '</div>';
       });
       productPage.innerHTML = productHtml;
       root.appendChild(productPage);
@@ -227,7 +317,7 @@
       let agentHtml = '<div class="page-title">Agent</div><div class="page-desc">Agent 分工、流程与状态</div>';
       agentKeys.forEach(key => {
         if (!meta[key]) return;
-        agentHtml += '<div class="card doc-block"><div class="doc-label">' + escapeHtml(metaLabels[key] || key) + '</div><div class="doc-value">' + escapeHtml(meta[key]) + '</div></div>';
+        agentHtml += '<div class="card doc-block"><div class="doc-label">' + escapeHtml(metaLabels[key] || key) + '</div>' + renderDocValue(key, meta[key]) + '</div>';
       });
       agentPage.innerHTML = agentHtml;
       root.appendChild(agentPage);
