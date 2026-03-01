@@ -1,8 +1,10 @@
 """HANDOFF API: read/write handoff state, status updates, optional GitHub webhook."""
 import base64
 import re
+import os
 from pathlib import Path
 from contextlib import asynccontextmanager
+from datetime import datetime
 from fastapi import FastAPI, Depends, HTTPException, Request, Header
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -13,11 +15,15 @@ import httpx
 from database import engine, get_db, Base
 from models import Meta, Phase, PhaseTask, CurrentTask, LaunchInstruction, CompletionLog
 from schemas import (
-    HandoffOut, PhaseOut, PhaseTaskOut, CurrentTaskOut,
+    HandoffOut, PhaseOut, PhaseTaskOut, CurrentTaskOut, RepoCommitOut,
     LaunchInstructionOut, CompletionLogOut,
     PhaseCreate, PhaseUpdate, PhaseStatusUpdate, PhaseTaskCreate,
     CurrentTaskCreate, CurrentTaskUpdate, LaunchInstructionUpdate, CompletionLogCreate,
 )
+
+# GitHub API for repo commits (each repo's last 3 commits)
+GITHUB_OWNER = os.environ.get("GITHUB_OWNER", "DRX-1877")
+GITHUB_REPOS = os.environ.get("GITHUB_REPOS", "LearningPlanApp,learning-plan-api").split(",")
 
 
 @asynccontextmanager
@@ -43,6 +49,43 @@ def meta_to_dict(db: Session) -> dict:
     return {r.key: r.value for r in rows}
 
 
+def fetch_repo_commits() -> dict[str, list[RepoCommitOut]]:
+    """Fetch last 3 commits per repo from GitHub API."""
+    result: dict[str, list[RepoCommitOut]] = {}
+    for repo in GITHUB_REPOS:
+        repo = repo.strip()
+        if not repo:
+            continue
+        try:
+            url = f"https://api.github.com/repos/{GITHUB_OWNER}/{repo}/commits?per_page=3"
+            headers = {"Accept": "application/vnd.github.v3+json"}
+            if token := os.environ.get("GITHUB_TOKEN"):
+                headers["Authorization"] = f"Bearer {token}"
+            r = httpx.get(url, headers=headers, timeout=10)
+            if r.status_code != 200:
+                result[repo] = []
+                continue
+            data = r.json()
+            commits = []
+            for c in data:
+                msg = c.get("commit", {}).get("message", "").split("\n")[0].strip()
+                sha_full = c.get("sha", "")
+                sha = sha_full[:7]
+                date_str = c.get("commit", {}).get("author", {}).get("date", "")
+                if date_str:
+                    try:
+                        dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                        date_str = dt.strftime("%Y-%m-%d %H:%M")
+                    except Exception:
+                        pass
+                url = f"https://github.com/{GITHUB_OWNER}/{repo}/commit/{sha_full}"
+                commits.append(RepoCommitOut(message=msg, sha=sha, sha_full=sha_full, date=date_str, url=url))
+            result[repo] = commits
+        except Exception:
+            result[repo] = []
+    return result
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -50,18 +93,20 @@ def health():
 
 @app.get("/handoff", response_model=HandoffOut)
 def get_handoff(db: Session = Depends(get_db)):
-    """Full handoff: meta, current_tasks, phases (with tasks), completion_log, launch_instructions."""
+    """Full handoff: meta, current_tasks, phases (with tasks), completion_log, launch_instructions, repo_commits."""
     meta = meta_to_dict(db)
     current_tasks = db.query(CurrentTask).order_by(CurrentTask.sort_order, CurrentTask.id).all()
     phases = db.query(Phase).order_by(Phase.id).all()
     completion_log = db.query(CompletionLog).order_by(CompletionLog.created_at.desc()).limit(50).all()
     launch_instructions = db.query(LaunchInstruction).order_by(LaunchInstruction.agent_type).all()
+    repo_commits = fetch_repo_commits()
     return HandoffOut(
         meta=meta,
         current_tasks=current_tasks,
         phases=phases,
         completion_log=completion_log,
         launch_instructions=launch_instructions,
+        repo_commits=repo_commits,
     )
 
 

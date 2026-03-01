@@ -7,8 +7,8 @@
   <style>
     :root {
       --bg: #f6f8fa; --card: #ffffff; --text: #24292f; --muted: #57606a; --border: #d0d7de;
-      --待办: #0969da; --进行中: #bf8700; --待审核: #cf222e; --需修改: #cf222e; --已完成: #1a7f37;
-      --accent: #0969da; --product-accent: #0969da; --agent-accent: #8250df;
+      --待办: #24292f; --进行中: #bf8700; --待审核: #cf222e; --需修改: #cf222e; --已完成: #1a7f37;
+      --accent: #24292f; --product-accent: #24292f; --agent-accent: #8250df;
     }
     * { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; line-height: 1.5; }
@@ -24,7 +24,7 @@
       color: var(--muted); text-decoration: none;
     }
     .nav a:hover { color: var(--text); background: #f6f8fa; }
-    .nav a.active { color: var(--accent); background: rgba(9,105,218,.08); }
+    .nav a.active { color: var(--accent); background: rgba(36,41,47,.08); }
 
     .page { display: none; max-width: 896px; margin: 0 auto; padding: 24px 16px 48px; }
     .page.active { display: block; }
@@ -33,7 +33,7 @@
 
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 16px; }
     .badge { display: inline-block; padding: 0 7px; border-radius: 20px; font-size: 0.75rem; font-weight: 500; }
-    .badge.待办 { background: #ddf4ff; color: #0969da; }
+    .badge.待办 { background: #eaeef2; color: #24292f; }
     .badge.进行中 { background: #fff8c5; color: #9a6700; }
     .badge.待审核 { background: #ffebe9; color: #cf222e; }
     .badge.需修改 { background: #ffebe9; color: #cf222e; }
@@ -51,8 +51,8 @@
     .phase-progress-item:last-child { margin-bottom: 0; }
     .phase-progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .phase-progress-label { font-size: 0.875rem; font-weight: 600; color: var(--text); }
-    .phase-progress-bar { height: 6px; background: #eaeef2; border-radius: 3px; overflow: hidden; }
-    .phase-progress-fill { height: 100%; border-radius: 3px; transition: width 0.2s; }
+    .phase-progress-bar { height: 3px; background: #eaeef2; border-radius: 2px; overflow: hidden; }
+    .phase-progress-fill { height: 100%; border-radius: 2px; transition: width 0.2s; }
 
     .current-tasks-compact { list-style: none; padding: 0; margin: 0; }
     .current-tasks-compact li { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px; }
@@ -75,7 +75,7 @@
     .state-sections { display: flex; flex-direction: column; gap: 28px; }
     .state-section { border: 1px solid var(--border); border-radius: 8px; padding: 24px; background: var(--card); }
     .state-section-title { font-size: 1.25rem; font-weight: 600; margin: 0 0 20px 0; padding-bottom: 12px; border-bottom: 2px solid var(--border); color: var(--text); }
-    .state-ios .state-section-title { border-color: #0969da; color: #0969da; }
+    .state-ios .state-section-title { border-color: #24292f; color: #24292f; }
     .state-backend .state-section-title { border-color: #1a7f37; color: #1a7f37; }
     .state-abandoned .state-section-title { border-color: var(--muted); color: var(--muted); }
     .state-section-repo { font-size: 0.8em; font-weight: 500; font-family: ui-monospace, monospace; color: var(--muted); margin-left: 8px; }
@@ -100,8 +100,8 @@
     #page-phases .phase-pr-btn:hover { background: #2ea043; }
     #page-phases .phase-progress { margin-bottom: 12px; }
     #page-phases .phase-progress-text { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; }
-    #page-phases .phase-progress-bar { height: 6px; background: #eaeef2; border-radius: 3px; overflow: hidden; }
-    #page-phases .phase-progress-fill { height: 100%; border-radius: 3px; transition: width 0.2s; }
+    #page-phases .phase-progress-bar { height: 3px; background: #eaeef2; border-radius: 2px; overflow: hidden; }
+    #page-phases .phase-progress-fill { height: 100%; border-radius: 2px; transition: width 0.2s; }
     #page-phases .phase-tasks { list-style: none; padding: 0; margin: 0; }
     #page-phases .phase-tasks li { padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; font-size: 0.875rem; }
     #page-phases .phase-tasks li:last-child { border-bottom: none; }
@@ -120,7 +120,7 @@
 
     .loading, .error { text-align: center; padding: 48px 16px; color: var(--muted); }
     .error { color: #cf222e; }
-    a { color: #0969da; text-decoration: none; }
+    a { color: #24292f; text-decoration: none; }
     a:hover { text-decoration: underline; }
 
     @media (max-width: 640px) {
@@ -181,36 +181,24 @@
       return html;
     }
 
-    function renderCurrentState(text) {
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (_) {
-        data = null;
-      }
-      if (data && data.sections && Array.isArray(data.sections)) {
-        let html = '<div class="state-sections">';
-        data.sections.forEach(sec => {
-          html += '<div class="state-section state-' + escapeAttr(sec.id) + '">';
-          html += '<h4 class="state-section-title">' + escapeHtml(sec.title);
-          if (sec.repo) html += ' <span class="state-section-repo">' + escapeHtml(sec.repo) + '</span>';
-          html += '</h4>';
-          (sec.subsections || []).forEach(sub => {
-            if ((sub.items || []).length === 0) return;
-            html += '<div class="state-subsection">';
-            if (sub.label) html += '<div class="state-subsection-label">' + escapeHtml(sub.label) + '</div>';
-            html += '<ul class="state-item-list">';
-            sub.items.forEach(it => {
-              html += '<li>' + escapeHtml(it) + '</li>';
-            });
-            html += '</ul></div>';
-          });
-          html += '</div>';
+    function renderRepoCommits(repoCommits) {
+      if (!repoCommits || typeof repoCommits !== 'object') return '<div class="doc-value" style="color:var(--muted)">无数据</div>';
+      const repos = Object.keys(repoCommits);
+      if (repos.length === 0) return '<div class="doc-value" style="color:var(--muted)">无数据</div>';
+      let html = '<div class="state-sections">';
+      repos.forEach(repo => {
+        const commits = repoCommits[repo] || [];
+        html += '<div class="state-section"><h4 class="state-section-title"><span class="state-section-repo">' + escapeHtml(repo) + '</span></h4>';
+        html += '<ul class="state-item-list">';
+        commits.forEach(c => {
+          const msg = (c.message || '').slice(0, 120) + ((c.message || '').length > 120 ? '…' : '');
+          const shaLink = c.url ? '<a href="' + escapeAttr(c.url) + '" target="_blank" rel="noopener" style="font-size:0.8em;color:var(--muted)">' + escapeHtml(c.sha || '') + '</a>' : escapeHtml(c.sha || '');
+          html += '<li>' + shaLink + ' ' + escapeHtml(msg) + '</li>';
         });
-        html += '</div>';
-        return html;
-      }
-      return '<div class="doc-value">' + escapeHtml(text) + '</div>';
+        html += '</ul></div>';
+      });
+      html += '</div>';
+      return html;
     }
 
     function renderDocValue(key, text) {
@@ -218,8 +206,7 @@
         const table = parseMarkdownTable(text);
         if (table) return table;
       }
-      if (key === 'current_state') return renderCurrentState(text);
-      return '<div class="doc-value">' + escapeHtml(text) + '</div>';
+      return '<div class="doc-value">' + escapeHtml(text || '') + '</div>';
     }
 
     function render(data) {
@@ -299,12 +286,13 @@
       // Agent page
       const agentPage = document.createElement('div');
       agentPage.id = 'page-agent'; agentPage.className = 'page';
-      const agentKeys = ['agent_roles', 'completion_workflow', 'current_state', 'launch_cmd_help'];
-      let agentHtml = '<div class="page-title">Agent</div><div class="page-desc">Agent 分工、流程与状态</div>';
+      const agentKeys = ['agent_roles', 'completion_workflow', 'launch_cmd_help'];
+      let agentHtml = '<div class="page-title">Agent</div><div class="page-desc">Agent 分工、流程与各 Repo 最近提交</div>';
       agentKeys.forEach(key => {
         if (!meta[key]) return;
         agentHtml += '<div class="card doc-block"><div class="doc-label">' + escapeHtml(metaLabels[key] || key) + '</div>' + renderDocValue(key, meta[key]) + '</div>';
       });
+      agentHtml += '<div class="card doc-block"><div class="doc-label">各 Repo 最近提交</div>' + renderRepoCommits(data.repo_commits || {}) + '</div>';
       agentPage.innerHTML = agentHtml;
       root.appendChild(agentPage);
 

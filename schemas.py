@@ -64,6 +64,15 @@ class CompletionLogOut(BaseModel):
         from_attributes = True
 
 
+# Repo commit for dashboard
+class RepoCommitOut(BaseModel):
+    message: str
+    sha: str
+    sha_full: str = ""
+    date: str
+    url: str = ""
+
+
 # Full handoff response
 class HandoffOut(BaseModel):
     meta: dict
@@ -71,6 +80,7 @@ class HandoffOut(BaseModel):
     phases: list[PhaseOut]
     completion_log: list[CompletionLogOut]
     launch_instructions: list[LaunchInstructionOut]
+    repo_commits: dict[str, list[RepoCommitOut]] = {}
 
 
 # Write schemas
