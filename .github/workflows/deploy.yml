@@ -1,0 +1,45 @@
+# handoff-api 部署到自有服务器（push main 时触发）
+# 需在仓库 Settings → Secrets 中配置：SERVER_HOST、SERVER_USER、SERVER_SSH_KEY
+# 可选：HANDOFF_DATABASE_URL（不设则使用默认 SQLite）
+name: Deploy Handoff API
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 上传到服务器
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "."
+          target: "~/deploy/handoff-api"
+
+      - name: 安装依赖并重启服务
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ~/deploy/handoff-api
+            [ -d .venv ] || python3 -m venv .venv
+            .venv/bin/pip install -q -r requirements.txt
+            if [ -n "${{ secrets.HANDOFF_DATABASE_URL }}" ]; then
+              echo "HANDOFF_DATABASE_URL=${{ secrets.HANDOFF_DATABASE_URL }}" > .env
+            fi
+            .venv/bin/python seed.py 2>/dev/null || true
+            pkill -f "uvicorn main:app" 2>/dev/null || true
+            nohup .venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 > handoff.log 2>&1 &
+            sleep 2
+            .venv/bin/python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')" || exit 1
+            echo "Handoff API deployed and healthy."
