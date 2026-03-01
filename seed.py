@@ -1,4 +1,5 @@
 """Seed database from current HANDOFF content. Run after tables are created."""
+import json
 import os
 import sys
 
@@ -20,13 +21,54 @@ def seed():
         ("design_refs", "docs/plans/2026-02-26-ai-agent-learning-app-vision.md, docs/plans/, docs/plans/2025-02-26-learning-plan-app-implementation.md, docs/plans/2025-02-26-learning-plan-app-design.md, docs/plans/2025-02-26-agent-teams-config.md, docs/learning-plan-app-description-for-ui.md"),
         ("agent_roles", "| Agent | 职责 | 工作区 |\n|-------|------|--------|\n| **功能迭代 Agent** | 统筹迭代、拆任务、分配、验收、推动下一轮 | `docs/` |\n| **iOS Agent** | SwiftUI、SwiftData、前端交互与展示 | `LearningPlanApp/` |\n| **后端 Agent** | FastAPI、Agent 工作流、数据分析与生成 | `learning-plan-api/` |"),
         ("completion_workflow", "1. 运行测试脚本：./scripts/run_tests.sh（或分步后端 pytest、iOS xcodebuild test）。若失败则修复后重跑。\n2. 更新 HANDOFF：将对应任务 [ ] 改为 [x]；在「当前状态」中补充完成内容；在「更新日志」末尾新增一行。"),
-        ("current_state", "iOS 已完成：数据模型 Plan/Phase/PlanItem/Task/ChecklistItem；视图 ContentView/ExploreView/OnboardingPromiseView/HomeView/PlanModeView/NewPlanView/PlanDetailView/PomodoroView/ReportView/VerifyChatView；服务 TemplateAPIService/PlanModeService/ReportService/VerifyService；Theme+HapticManager+L10n；已对接 GET /api/templates、POST /api/generate、POST /api/chat/guide、POST /api/generate_report、POST /api/chat/verify。\n后端已完成：FastAPI+CORS；API 同上+GET /health；模板引擎 TemplateBase+quant/ai_agent；agents planner/writer/reviewer/guide/reporter/interviewer；model_choice deepseek/doubao/zhipu；Phase A hours 支持；schemas/plan.py 与 iOS 对齐；已部署 42.193.176.27:8000。\n已决定放弃：极客控制台/双面板透明工作流。"),
         ("iteration_priority", "| 优先级 | Phase | 理由 |\n|--------|-------|------|\n| 1 | **D (报告引擎)** | 直接击中核心痛点，分享属性强，见效快 |\n| 2 | **E (导师问答)** | 交互体验升级，硬核证明 Agent 能力，依赖 D 的产出数据 |"),
         ("launch_cmd_help", "方式一（命令行）：安装 Cursor CLI 后，./scripts/run_agent.sh backend|ios|test|iteration。\n方式二（Composer）：项目根目录执行 ./scripts/agent_startup.sh backend（或 ios），将输出粘贴到 Composer；macOS 可用 | pbcopy 复制到剪贴板。"),
     ]
     for key, value in meta_entries:
         if db.query(Meta).filter(Meta.key == key).first() is None:
             db.add(Meta(key=key, value=value))
+
+    # 当前状态：结构化 JSON，便于解析和展示
+    current_state_struct = {
+        "sections": [
+            {
+                "id": "ios",
+                "title": "iOS 已完成",
+                "subsections": [
+                    {"label": "数据模型", "items": ["Plan", "Phase", "PlanItem", "Task", "ChecklistItem"]},
+                    {"label": "视图", "items": ["ContentView", "ExploreView", "OnboardingPromiseView", "HomeView", "PlanModeView", "NewPlanView", "PlanDetailView", "PomodoroView", "ReportView", "VerifyChatView"]},
+                    {"label": "服务", "items": ["TemplateAPIService", "PlanModeService", "ReportService", "VerifyService"]},
+                    {"label": "设计系统", "items": ["Theme", "HapticManager", "L10n"]},
+                    {"label": "已对接 API", "items": ["GET /api/templates", "POST /api/generate", "POST /api/chat/guide", "POST /api/generate_report", "POST /api/chat/verify"]},
+                ],
+            },
+            {
+                "id": "backend",
+                "title": "后端已完成",
+                "subsections": [
+                    {"label": "框架", "items": ["FastAPI", "CORS"]},
+                    {"label": "API", "items": ["GET /api/templates", "POST /api/generate", "POST /api/chat/guide", "POST /api/generate_report", "POST /api/chat/verify", "GET /health"]},
+                    {"label": "模板引擎", "items": ["TemplateBase", "quant", "ai_agent"]},
+                    {"label": "Agents", "items": ["planner", "writer", "reviewer", "guide", "reporter", "interviewer"]},
+                    {"label": "模型", "items": ["model_choice: deepseek / doubao / zhipu"]},
+                    {"label": "其他", "items": ["Phase A hours 支持", "schemas/plan.py 与 iOS 对齐", "已部署 42.193.176.27:8000"]},
+                ],
+            },
+            {
+                "id": "abandoned",
+                "title": "已决定放弃",
+                "subsections": [
+                    {"label": "", "items": ["极客控制台 / 双面板透明工作流"]},
+                ],
+            },
+        ],
+    }
+    current_state_json = json.dumps(current_state_struct, ensure_ascii=False)
+    row = db.query(Meta).filter(Meta.key == "current_state").first()
+    if row:
+        row.value = current_state_json
+    else:
+        db.add(Meta(key="current_state", value=current_state_json))
 
     # Phases: F (UX 改版), D-1, D-2, E-1, E-2
     phases_data = [

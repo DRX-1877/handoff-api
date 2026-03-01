@@ -72,14 +72,17 @@
     .md-table tr:last-child td { border-bottom: none; }
     .md-table code { background: rgba(175,184,193,.2); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; font-family: ui-monospace, monospace; }
 
-    .state-section { margin-bottom: 16px; }
-    .state-section:last-child { margin-bottom: 0; }
-    .state-section-title { font-size: 0.875rem; font-weight: 600; color: var(--text); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: inline-block; }
-    .state-section.iOS .state-section-title { border-color: #0969da; }
-    .state-section.后端 .state-section-title { border-color: #1a7f37; }
-    .state-section.放弃 .state-section-title { border-color: var(--muted); }
-    .state-items { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
-    .state-item { background: #f6f8fa; padding: 4px 10px; border-radius: 6px; font-size: 0.8125rem; color: var(--text); border: 1px solid var(--border); }
+    .state-sections { display: flex; flex-direction: column; gap: 24px; }
+    .state-section { border: 1px solid var(--border); border-radius: 6px; padding: 16px; background: var(--card); }
+    .state-section-title { font-size: 1rem; font-weight: 600; margin: 0 0 12px 0; padding-bottom: 8px; border-bottom: 1px solid var(--border); color: var(--text); }
+    .state-ios .state-section-title { border-color: #0969da; color: #0969da; }
+    .state-backend .state-section-title { border-color: #1a7f37; color: #1a7f37; }
+    .state-abandoned .state-section-title { border-color: var(--muted); color: var(--muted); }
+    .state-subsection { margin-bottom: 12px; }
+    .state-subsection:last-child { margin-bottom: 0; }
+    .state-subsection-label { font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .state-item-list { margin: 0; padding-left: 20px; font-size: 0.875rem; line-height: 1.6; color: var(--text); }
+    .state-item-list li { margin-bottom: 4px; }
 
     #page-tasks table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
     #page-tasks th, #page-tasks td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); }
@@ -119,9 +122,11 @@
     a:hover { text-decoration: underline; }
 
     @media (max-width: 640px) {
-      .overview-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-      .page { padding: 16px 12px 32px; }
-      .card { padding: 12px; }
+      .overview-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .page { padding: 20px 14px 40px; }
+      .card { padding: 18px; }
+      .phase-progress-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .phase-progress-bar { width: 100%; }
       #page-tasks .tasks-table-wrap { overflow-x: auto; }
       #page-tasks table { font-size: 0.8125rem; }
       #page-tasks thead { display: none; }
@@ -175,39 +180,33 @@
     }
 
     function renderCurrentState(text) {
-      const sections = [];
-      const markers = [
-        { key: 'iOS 已完成', type: 'iOS' },
-        { key: '后端已完成', type: '后端' },
-        { key: '已决定放弃', type: '放弃' }
-      ];
-      for (let i = 0; i < markers.length; i++) {
-        let idx = text.indexOf(markers[i].key + '：');
-        if (idx < 0) idx = text.indexOf(markers[i].key + ':');
-        if (idx < 0) continue;
-        const start = idx + markers[i].key.length + 1;
-        let end = text.length;
-        if (i < markers.length - 1) {
-          let nextIdx = text.indexOf(markers[i + 1].key + '：', start);
-          if (nextIdx < 0) nextIdx = text.indexOf(markers[i + 1].key + ':', start);
-          if (nextIdx >= 0) end = nextIdx;
-        }
-        const content = (end > 0 ? text.slice(start, end) : text.slice(start)).trim();
-        const items = content.split(/[；;]\s*/).map(s => s.trim()).filter(Boolean);
-        sections.push({ title: markers[i].key, type: markers[i].type, items });
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (_) {
+        data = null;
       }
-      if (sections.length === 0) return '<div class="doc-value">' + escapeHtml(text) + '</div>';
-      let html = '';
-      sections.forEach(s => {
-        html += '<div class="state-section ' + s.type + '"><div class="state-section-title">' + escapeHtml(s.title) + '</div>';
-        if (s.items.length > 0) {
-          html += '<div class="state-items">';
-          s.items.forEach(it => { html += '<span class="state-item">' + escapeHtml(it) + '</span>'; });
+      if (data && data.sections && Array.isArray(data.sections)) {
+        let html = '<div class="state-sections">';
+        data.sections.forEach(sec => {
+          html += '<div class="state-section state-' + escapeAttr(sec.id) + '">';
+          html += '<h4 class="state-section-title">' + escapeHtml(sec.title) + '</h4>';
+          (sec.subsections || []).forEach(sub => {
+            if ((sub.items || []).length === 0) return;
+            if (sub.label) html += '<div class="state-subsection"><div class="state-subsection-label">' + escapeHtml(sub.label) + '</div>';
+            html += '<ul class="state-item-list">';
+            sub.items.forEach(it => {
+              html += '<li>' + escapeHtml(it) + '</li>';
+            });
+            html += '</ul>';
+            if (sub.label) html += '</div>';
+          });
           html += '</div>';
-        }
+        });
         html += '</div>';
-      });
-      return html;
+        return html;
+      }
+      return '<div class="doc-value">' + escapeHtml(text) + '</div>';
     }
 
     function renderDocValue(key, text) {
