@@ -8,7 +8,7 @@
     :root {
       --bg: #f6f8fa; --card: #ffffff; --text: #24292f; --muted: #57606a; --border: #d0d7de;
       --待办: #24292f; --进行中: #bf8700; --待审核: #cf222e; --需修改: #cf222e; --已完成: #1a7f37;
-      --accent: #24292f; --product-accent: #24292f; --agent-accent: #8250df;
+      --accent: #24292f; --product-accent: #24292f; --agent-accent: #24292f;
     }
     * { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; line-height: 1.5; }
@@ -52,7 +52,7 @@
     .phase-progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .phase-progress-label { font-size: 0.875rem; font-weight: 600; color: var(--text); }
     .phase-progress-bar { height: 3px; background: #eaeef2; border-radius: 2px; overflow: hidden; }
-    .phase-progress-fill { height: 100%; border-radius: 2px; transition: width 0.2s; }
+    .phase-progress-fill { height: 100%; border-radius: 2px; transition: width 0.2s; background: #24292f; }
 
     .current-tasks-compact { list-style: none; padding: 0; margin: 0; }
     .current-tasks-compact li { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px; }
@@ -101,7 +101,7 @@
     #page-phases .phase-progress { margin-bottom: 12px; }
     #page-phases .phase-progress-text { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; }
     #page-phases .phase-progress-bar { height: 3px; background: #eaeef2; border-radius: 2px; overflow: hidden; }
-    #page-phases .phase-progress-fill { height: 100%; border-radius: 2px; transition: width 0.2s; }
+    #page-phases .phase-progress-fill { height: 100%; border-radius: 2px; transition: width 0.2s; background: #24292f; }
     #page-phases .phase-tasks { list-style: none; padding: 0; margin: 0; }
     #page-phases .phase-tasks li { padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; font-size: 0.875rem; }
     #page-phases .phase-tasks li:last-child { border-bottom: none; }
@@ -239,7 +239,7 @@
       
       overviewHtml += '<div class="card"><div style="font-size:1.1rem;font-weight:600;margin-bottom:16px">Phase 进度</div><div class="phase-progress-list">';
       phases.forEach(p => {
-        const statusColor = p.status === '已完成' ? 'var(--已完成)' : p.status === '进行中' ? 'var(--进行中)' : p.status === '待审核' ? 'var(--待审核)' : p.status === '需修改' ? 'var(--需修改)' : 'var(--待办)';
+        const statusColor = '#24292f';
         const tasksDone = (p.tasks || []).filter(t => t.done).length;
         const tasksTotal = (p.tasks || []).length;
         const phaseProgress = tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0;
