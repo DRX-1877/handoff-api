@@ -30,6 +30,11 @@
     .log-list li:last-child { border-bottom: none; }
     .loading { color: var(--muted); }
     .error { color: var(--需修改); }
+    .meta-block { margin-bottom: 1rem; }
+    .meta-block:last-child { margin-bottom: 0; }
+    .meta-label { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.25rem; }
+    .meta-value { font-size: 0.9rem; white-space: pre-wrap; word-break: break-word; }
+    .meta-value table { margin-top: 0.25rem; }
   </style>
 </head>
 <body>
@@ -53,6 +58,29 @@
           root.appendChild(s);
         };
 
+        const metaLabels = {
+          vision_quote: '产品愿景（引用）',
+          vision_summary: '愿景摘要',
+          design_refs: '设计参考',
+          agent_roles: 'Agent 分工',
+          completion_workflow: '完工流程',
+          current_state: '当前状态',
+          iteration_priority: '迭代优先级',
+          launch_cmd_help: '启动命令说明'
+        };
+        const metaOrder = ['vision_quote', 'vision_summary', 'design_refs', 'agent_roles', 'completion_workflow', 'current_state', 'iteration_priority', 'launch_cmd_help'];
+        const meta = data.meta || {};
+        let metaHtml = '';
+        metaOrder.forEach(key => {
+          if (!meta[key]) return;
+          const label = metaLabels[key] || key;
+          const raw = meta[key];
+          const hasTable = /^\s*\|.+\|/m.test(raw);
+          const valueHtml = hasTable ? '<pre class="meta-value">' + escapeHtml(raw) + '</pre>' : '<div class="meta-value">' + escapeHtml(raw) + '</div>';
+          metaHtml += '<div class="meta-block"><div class="meta-label">' + escapeHtml(label) + '</div>' + valueHtml + '</div>';
+        });
+        if (metaHtml) section('文档摘要', metaHtml);
+
         let tasksHtml = '<table><thead><tr><th>负责</th><th>任务</th><th>启动命令</th></tr></thead><tbody>';
         (data.current_tasks || []).forEach(t => {
           tasksHtml += '<tr><td>' + escapeHtml(t.assignee || '') + '</td><td>' + escapeHtml(t.task_desc) + '</td><td>' + escapeHtml(t.launch_cmd || '') + '</td></tr>';
@@ -60,8 +88,14 @@
         tasksHtml += '</tbody></table>';
         section('当前待办', tasksHtml);
 
+        const phaseOrder = (a, b) => {
+          const order = ['F', 'D-1', 'D-2', 'E-1', 'E-2'];
+          const i = order.indexOf(a.phase_id), j = order.indexOf(b.phase_id);
+          return (i === -1 ? 99 : i) - (j === -1 ? 99 : j);
+        };
+        const sortedPhases = (data.phases || []).slice().sort(phaseOrder);
         let phasesHtml = '';
-        (data.phases || []).forEach(p => {
+        sortedPhases.forEach(p => {
           let meta = p.pr_url ? ' | <a href="' + escapeAttr(p.pr_url) + '" target="_blank" rel="noopener">PR</a>' : '';
           if (p.note) meta += ' | ' + escapeHtml(p.note);
           let tasks = (p.tasks || []).map(t => '<li>' + (t.done ? '✓' : '○') + ' ' + escapeHtml(t.content) + '</li>').join('');
