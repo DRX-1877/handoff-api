@@ -25,23 +25,13 @@ jobs:
           target: "~/deploy/handoff-api"
 
       - name: 安装依赖并重启服务
+        env:
+          HANDOFF_DATABASE_URL: ${{ secrets.HANDOFF_DATABASE_URL }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           command_timeout: 2m
-          script: |
-            cd ~/deploy/handoff-api
-            [ -d .venv ] || python3 -m venv .venv
-            .venv/bin/pip install -q -r requirements.txt
-            if [ -n "${{ secrets.HANDOFF_DATABASE_URL }}" ]; then
-              echo "HANDOFF_DATABASE_URL=${{ secrets.HANDOFF_DATABASE_URL }}" > .env
-            fi
-            .venv/bin/python seed.py 2>/dev/null || true
-            pkill -f "handoff-api.*uvicorn main:app" 2>/dev/null || true
-            sleep 3
-            setsid nohup .venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 > handoff.log 2>&1 < /dev/null &
-            sleep 5
-            .venv/bin/python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')" || exit 1
-            echo "Handoff API deployed and healthy."
+          envs: HANDOFF_DATABASE_URL
+          script_path: deploy/remote-deploy.sh
