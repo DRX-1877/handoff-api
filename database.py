@@ -3,10 +3,8 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = os.environ.get(
-    "HANDOFF_DATABASE_URL",
-    "sqlite:///./handoff.db"
-)
+_url = os.environ.get("HANDOFF_DATABASE_URL", "")
+DATABASE_URL = _url.strip() or "sqlite:///./handoff.db"
 # SQLite needs check_same_thread=False for FastAPI
 connect_args = {} if not DATABASE_URL.startswith("sqlite") else {"check_same_thread": False}
 

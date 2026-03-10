@@ -7,6 +7,8 @@ cd ~/deploy/handoff-api
 
 if [ -n "${HANDOFF_DATABASE_URL}" ]; then
   echo "HANDOFF_DATABASE_URL=${HANDOFF_DATABASE_URL}" > .env
+else
+  unset HANDOFF_DATABASE_URL
 fi
 
 .venv/bin/python seed.py 2>/dev/null || true
