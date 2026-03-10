@@ -34,4 +34,6 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           command_timeout: 2m
           envs: HANDOFF_DATABASE_URL
-          script_path: deploy/remote-deploy.sh
+          script: |
+            cd ~/deploy/handoff-api
+            bash deploy/remote-deploy.sh
