@@ -198,6 +198,160 @@ def export_handoff(format: str = "markdown", db: Session = Depends(get_db)):
     return {"format": "markdown", "content": "\n".join(lines)}
 
 
+# Project rule keys (stored in meta, configurable per project)
+PROJECT_RULE_KEYS = ("agent_roles", "design_refs", "iteration_priority", "launch_cmd_help", "completion_workflow")
+
+
+def _handoff_base_url(request: Request | None) -> str:
+    base = os.environ.get("HANDOFF_PUBLIC_URL", "").rstrip("/")
+    if not base and request:
+        base = str(request.base_url).rstrip("/")
+    return base or "https://handoff.itsokthen.com"
+
+
+def _build_universal_rules(request: Request | None) -> tuple[str, dict]:
+    """基础规则：API 用法、PR 格式等，与项目无关。GET /handoff/rules 即返回此规则。"""
+    base = _handoff_base_url(request)
+    markdown = f"""---
+description: HANDOFF 基础规则（API 用法、PR 格式）
+alwaysApply: true
+---
+
+# HANDOFF 基础规则
+
+## 规则 API
+- 本规则：`GET {base}/handoff/rules`
+- 项目规则：`GET {base}/handoff/rules/project`
+
+## 启动时
+- 获取上下文：`GET {base}/handoff`（或 `{base}/handoff/export?format=markdown`）
+- 获取项目规则：`GET {base}/handoff/rules/project`
+- 根据 phases、current_tasks 确认当前工作范围
+
+## HANDOFF API 端点
+
+**读**
+- `GET {base}/handoff` 全量
+- `GET {base}/handoff/current-tasks` 当前待办
+- `GET {base}/handoff/phases` Phase 列表
+- `GET {base}/handoff/export?format=markdown` 导出
+- `GET {base}/handoff/launch-instructions/{{agent_type}}` 启动指令
+
+**写（完工时调用）**
+- `PATCH {base}/handoff/phase-tasks/{{id}}` 打勾，body: `{{"done": true}}`
+- `POST {base}/handoff/completion-log` 追加日志，body: `{{"date": "YYYY-MM-DD", "message": "..."}}`
+- `PATCH {base}/handoff/phases/{{phase_id}}/status` 更新 Phase 状态，body: `{{"status": "已完成", "pr_url": "..."}}`
+
+## 完工流程（具体步骤以项目规则为准）
+1. 运行项目约定的测试脚本，全部通过
+2. 调用上述写接口更新状态
+
+## PR 标题格式
+- 必须包含 `[Phase X-Y]` 或 `[D-1]`，才能驱动 Phase 状态同步（待审核→已完成）
+- 示例：`feat: 报告生成 API [Phase D-1]`
+
+## API 根地址
+- `{base}`
+"""
+    return markdown, {
+        "handoff_api_url": base,
+        "pr_title_format": "[Phase X-Y] or [D-1]",
+        "markdown": markdown,
+    }
+
+
+def _build_project_rules(meta: dict) -> tuple[str, dict]:
+    """项目自定义规则：agent 分工、设计引用、完工流程等，可通过 API 配置。"""
+    parts = []
+    data: dict[str, str | None] = {}
+    for key in PROJECT_RULE_KEYS:
+        val = meta.get(key)
+        data[key] = val
+        if val:
+            title = {
+                "agent_roles": "Agent 职责与工作区",
+                "design_refs": "设计文档引用（启动前阅读）",
+                "iteration_priority": "Phase 优先级",
+                "launch_cmd_help": "Agent 启动方式",
+                "completion_workflow": "完工流程",
+            }.get(key, key)
+            parts.append(f"## {title}\n\n{val}\n")
+    markdown = (
+        "---\ndescription: 本项目 HANDOFF 自定义规则\nalwaysApply: true\n---\n\n# 项目规则\n\n" + "\n".join(parts)
+        if parts
+        else ""
+    )
+    return markdown, data
+
+
+@app.get("/handoff/rules")
+def get_rules(
+    format: str = "markdown",
+    scope: str = "universal",
+    request: Request = None,
+    db: Session = Depends(get_db),
+):
+    """
+    基础规则 API。默认返回基础规则（API 用法、PR 格式等）。
+    scope：universal=基础规则（默认）| project=项目规则 | all=合并
+    """
+    base = _handoff_base_url(request)
+    if scope == "universal":
+        md, data = _build_universal_rules(request)
+        out = {"scope": "universal", **data}
+    elif scope == "project":
+        meta = meta_to_dict(db)
+        md, data = _build_project_rules(meta)
+        out = {"scope": "project", **data, "markdown": md}
+    else:
+        meta = meta_to_dict(db)
+        u_md, u_data = _build_universal_rules(request)
+        p_md, p_data = _build_project_rules(meta)
+        md = u_md + "\n\n---\n\n" + p_md if p_md else u_md
+        out = {"scope": "all", "handoff_api_url": base, **{k: v for k, v in (u_data | p_data).items() if k != "markdown"}, "markdown": md}
+    if format == "json":
+        return out
+    return {"format": "markdown", "scope": scope, "content": md}
+
+
+@app.get("/handoff/rules/project")
+def get_project_rules(
+    format: str = "markdown",
+    db: Session = Depends(get_db),
+):
+    """返回项目自定义规则（agent_roles、design_refs、iteration_priority、launch_cmd_help、completion_workflow）。可通过 PUT /handoff/rules/project 修改。"""
+    meta = meta_to_dict(db)
+    md, data = _build_project_rules(meta)
+    if format == "json":
+        return {"keys": list(PROJECT_RULE_KEYS), **data}
+    return {"format": "markdown", "content": md}
+
+
+class ProjectRulesUpdate(BaseModel):
+    agent_roles: str | None = None
+    design_refs: str | None = None
+    iteration_priority: str | None = None
+    launch_cmd_help: str | None = None
+    completion_workflow: str | None = None
+
+
+@app.put("/handoff/rules/project")
+def update_project_rules(body: ProjectRulesUpdate, db: Session = Depends(get_db)):
+    """批量更新项目自定义规则。只更新传入的字段，未传入的保持不变。"""
+    updated = {}
+    for key in PROJECT_RULE_KEYS:
+        val = getattr(body, key, None)
+        if val is not None:
+            row = db.query(Meta).filter(Meta.key == key).first()
+            if row:
+                row.value = val
+            else:
+                db.add(Meta(key=key, value=val))
+            updated[key] = val
+    db.commit()
+    return {"updated": updated}
+
+
 # ----- Write API -----
 
 @app.put("/handoff/meta/{key}")
